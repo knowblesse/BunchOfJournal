@@ -18,6 +18,7 @@ from html.parser import HTMLParser
     
 """ Abstract URL Parser """
 class JNAbstractAddParser(HTMLParser):
+    # Get URL of Abstracts
     def __init__(self):
         HTMLParser.__init__(self)
         self.SectionFlag = False # Flag for Behavioral/Cognitive Section
@@ -50,6 +51,7 @@ class JNAbstractAddParser(HTMLParser):
         
 """ Abstract Preview Page Parser """        
 class JNAbstractParser(HTMLParser):
+    # Get data from the abstract page
     def __init__(self):
         HTMLParser.__init__(self)
         self.DataFlag = 0
