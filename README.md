@@ -12,7 +12,10 @@ Journal Crawling Software
 
 # Files
 ## crawling 
-### **FetchJoN.py** : fetch abstract data of J Neuro 
-###**FetchJoN_FullTxt.py** : fetch fulltext data of J Neuro
+### **FetchJoN.py** : fetch abstract data of J Neuro 13-18
+### **FetchJoN_FullTxt.py** : fetch fulltext data of J Neuro 13-17 
 
 ## analyzing 
+### ** BigramExtracter.py** : Extracts Bigram
+### ** UnigramExtracter.py** : Extracts Unigram
+### **JoNStat.py** : Analyze how many journals are published in each field
