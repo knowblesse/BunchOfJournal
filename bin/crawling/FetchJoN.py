@@ -13,61 +13,59 @@ Description:
 # Import Modules
 import urllib3
 from html.parser import HTMLParser
+import re
 
 ############## C L A S S E S ##############
     
 """ Abstract URL Parser """
 class JNAbstractAddParser(HTMLParser):
     # Get URL of Abstracts
-    def __init__(self):
+    def __init__(self, year, issue):
         HTMLParser.__init__(self)
         self.SectionFlag = False # Flag for Behavioral/Cognitive Section
         self.AbsUrl = []
+        self.urlform = '/content/'+str(year)+'/'+str(issue)+'/\d{1,4}'
     def handle_starttag(self, tag, attrs):
-        
-        if tag == 'h2':
-            if ('id', 'behavioral-cognitive') in attrs: # Find Only Behavioral/Cognitive Section of the page
-                self.SectionFlag = True
-            if ('id', 'ResearchArticlesBehavioralCognitive') in attrs: # 2018년 용
-                self.SectionFlag = True
-            if ('id', 'neurobiology-of-disease') in attrs:
-                self.SectionFlag = False
-            if ('id', 'ResearchArticlesNeurobiologyofDisease') in attrs: # 2018년 용
-                self.SectionFlag = False
-        # Get Abstract Link        
-        if self.SectionFlag:
-            if  tag == 'div':
-                if ('class','highwire-article-citation highwire-citation-type-highwire-article tooltip-enable') in attrs: # 2012년(?) 부터 2017년까지 를 위한 tag
-                    for attr in attrs:
-                        if attr[0] == 'data-url':
-                            self.AbsUrl.append(attr[1])
-                if ('class','highwire-article-citation highwire-citation-type-highwire-article tooltip-enable hasTooltip') in attrs: # 2018 년 데이터의 경우 tag class 가 이렇게 바뀜.
-                    for attr in attrs:
-                        if attr[0] == 'data-url':
-                            self.AbsUrl.append(attr[1])
-         
-    def getAbstractPreviewURL(self):
-        return self.AbsUrl
+        if tag == 'a':
+            for attr in attrs:
+                if attr[0] == 'href':
+                    self.AbsUrl.append(attr[1])
+    def getAbstractURL(self):
+        outputUrl = []
+        for url in self.AbsUrl:
+            _r = re.match(self.urlform, url)
+            if _r:
+                outputUrl.append(_r[0])
+        return outputUrl
         
 """ Abstract Preview Page Parser """        
 class JNAbstractParser(HTMLParser):
     # Get data from the abstract page
     def __init__(self):
         HTMLParser.__init__(self)
-        self.DataFlag = 0
+        self.abstractDivFound = False
+        self.abstractFound = False
+        self.abstractEnd = False
         self.OutputData = []
         
     def handle_starttag(self, tag, attrs):
-        if tag == 'p':
-            if self.DataFlag == 0:
-                self.DataFlag = 1
-            
+        if self.abstractDivFound == False:
+            if tag == 'div':
+                for attr in attrs:
+                    if attr[0] == 'id':
+                        if 'abstract' in attr[1]:
+                            self.abstractDivFound = True
+        else:
+            if tag == 'p':
+                self.abstractFound = True
+
     def handle_endtag(self, tag):
-        if tag == 'p':
-            self.DataFlag = 2
+        if self.abstractFound and (not self.abstractEnd):
+            if tag == 'p':
+                self.abstractEnd = True
             
     def handle_data(self, data):
-        if self.DataFlag == 1:
+        if self.abstractFound and (not self.abstractEnd):
             self.OutputData.append(data)
             
     def getAbstract(self):
@@ -75,8 +73,8 @@ class JNAbstractParser(HTMLParser):
 
 
 ############## P A R A M T S ##############       
-YEAR = 2018 # 어떤 년도에 나온 글들을 뽑아올지.
-IssueNum = 22 # 몇번쨰 Issue 까지 글을 뽑아올지. 최대는 50
+YEAR = 2022 # 어떤 년도에 나온 글들을 뽑아올지.
+IssueNum = 50 # 몇번쨰 Issue 까지 글을 뽑아올지. 최대는 50
 
 
 ############## M E T H O D S ##############
@@ -99,26 +97,30 @@ for issue in range(1,IssueNum+1):
     data = r.data.decode('utf-8')
     
     # Get Abstract URL Data            
-    parser = JNAbstractAddParser()
+    parser = JNAbstractAddParser(yearCode, issue)
     parser.feed(data)
-    urldata = parser.getAbstractPreviewURL()
+    urldata = parser.getAbstractURL()
     sizeAbstract = sizeAbstract + len(urldata)
-    
+    print('Processing 00', end='')
+    numProcessed = 0
     for abstract in urldata:
         http = urllib3.PoolManager()
         r = http.request('GET','http://www.jneurosci.org'+abstract)
         data = r.data.decode('utf-8')
         parser = JNAbstractParser()
         parser.feed(data)
-        AbstractData.extend([parser.getAbstract()])
-    
+        if parser.abstractFound:
+            AbstractData.append(parser.getAbstract())
+            numProcessed += 1
+            print(f'\b\b{numProcessed:02d}', end='')
+    print('')
     # Write File
     try:
         with open('Abstracts_' + str(YEAR) + '.txt', 'a', encoding='UTF-8') as f:
             for dat in AbstractData:
                 f.writelines(dat)
-                f.write('\n')
-            f.writelines('\n\n')
+                f.write('\n\n')
+            f.writelines('\n\n\n\n')
     except IOError as err:
         print('Error : ' + str(err))
     
