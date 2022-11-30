@@ -11,9 +11,10 @@ Description:
 
 import nltk
 from collections import Counter
+from pathlib import Path
 
-
-DATA_FILE = 'Abstracts_2016.txt'
+DATA_FILE = Path(r'C:\VCF\BunchOfJournal\bin\crawling\Abstracts_2021.txt')
+EXCLUDE_FILE = Path(r'C:\VCF\BunchOfJournal\bin\crawling\Exclude.txt')
 # Open Data Files
 try :
     with open(DATA_FILE,'r', encoding='UTF-8') as file:
@@ -25,7 +26,7 @@ except IOError as err:
     
 # Open Exception Word File
 try :
-    with open('C:\exclude.txt','r') as excludeFile:
+    with open(EXCLUDE_FILE,'r') as excludeFile:
         ex = excludeFile.read()
         excludeFile.close()
 except:
@@ -45,7 +46,7 @@ for exEl in token_ex:
 
 # Print Results
 try:
-    with open('Result_2013.txt','w',encoding='UTF-8') as of: # Output File
+    with open(DATA_FILE.parent / (DATA_FILE.stem+'_result.txt'),'w',encoding='UTF-8') as of: # Output File
         rank = 1
         for element in unigrams.most_common(500):
             of.writelines(str(rank) + ' : ' + str(element) + '\n')
